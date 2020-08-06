@@ -155,7 +155,6 @@ impl<S: VhostUserSlaveReqHandler> SlaveReqHandler<S> {
                 let msg = self.extract_request_body::<VhostUserU64>(&hdr, size, &buf)?;
                 self.backend.lock().unwrap().set_features(msg.value)?;
                 self.acked_virtio_features = msg.value;
-                self.update_reply_ack_flag();
             }
             MasterReq::SET_MEM_TABLE => {
                 let res = self.set_mem_table(&hdr, size, &buf, rfds);
@@ -537,7 +536,6 @@ impl<S: VhostUserSlaveReqHandler> SlaveReqHandler<S> {
         let vflag = VhostUserVirtioFeatures::PROTOCOL_FEATURES.bits();
         let pflag = VhostUserProtocolFeatures::REPLY_ACK;
         if (self.virtio_features & vflag) != 0
-            && (self.acked_virtio_features & vflag) != 0
             && self.protocol_features.contains(pflag)
             && (self.acked_protocol_features & pflag.bits()) != 0
         {
@@ -568,7 +566,7 @@ impl<S: VhostUserSlaveReqHandler> SlaveReqHandler<S> {
         req: &VhostUserMsgHeader<MasterReq>,
         res: Result<()>,
     ) -> Result<()> {
-        if self.reply_ack_enabled {
+        if self.reply_ack_enabled && req.is_need_reply() {
             let hdr = self.new_reply_header::<VhostUserU64>(req, 0)?;
             let val = match res {
                 Ok(_) => 0,
