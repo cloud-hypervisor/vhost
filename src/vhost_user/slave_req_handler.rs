@@ -568,7 +568,7 @@ impl<S: VhostUserSlaveReqHandler> SlaveReqHandler<S> {
         req: &VhostUserMsgHeader<MasterReq>,
         res: Result<()>,
     ) -> Result<()> {
-        if self.reply_ack_enabled {
+        if self.reply_ack_enabled && req.is_need_reply() {
             let hdr = self.new_reply_header::<VhostUserU64>(req, 0)?;
             let val = match res {
                 Ok(_) => 0,
